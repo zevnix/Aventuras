@@ -1,0 +1,16 @@
+
+/android-client/.gradle
+/android-client/app/build
+/android-client/local.properties
+
+
+android-client/.gradle
+android-client/app/build
+android-client/build
+android-client/local.properties
+*.jar
+
+/android-client/.gradle/
+/android-client/app/build/
+/android-client/build/
+/android-client/local.properties
