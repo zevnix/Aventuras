@@ -23,10 +23,10 @@ android {
             localProperties.load(localPropertiesFile.inputStream())
         }
         val supabaseUrl = localProperties.getProperty("SUPABASE_URL") ?: "\"https://placeholder.supabase.co\""
-        val supabaseKey = localProperties.getProperty("SUPABASE_KEY") ?: "\"placeholder_anon_key\""
+        val supabaseKey = localProperties.getProperty("SUPABASE_PUBLISHABLE_KEY") ?: "\"placeholder_publishable_key\""
 
         buildConfigField("String", "SUPABASE_URL", supabaseUrl)
-        buildConfigField("String", "SUPABASE_KEY", supabaseKey)
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", supabaseKey)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

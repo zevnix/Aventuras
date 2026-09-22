@@ -19,7 +19,7 @@ object SupabaseModule {
     fun initialize(context: Context) {
         client = createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,
-            supabaseKey = BuildConfig.SUPABASE_KEY
+            supabaseKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY
         ) {
             install(Auth) {
                 // Future production: Implement Settings implementation over EncryptedSharedPreferences.
