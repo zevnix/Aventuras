@@ -34,3 +34,20 @@ Para visualizar la base de la aplicación de Android:
 3.  Navega hasta la carpeta raíz de este repositorio y **selecciona específicamente la carpeta `/android-client`**.
 4.  Espera a que Gradle sincronice el proyecto.
 5.  Puedes previsualizar los componentes Compose abriendo el archivo `MainActivity.kt` o correr la aplicación pulsando el botón "Run" (si tienes un emulador configurado o un dispositivo físico conectado).
+
+## FASE 2: Identidad y Vinculación
+
+- **App Android (Niño)**: Configurado Jetpack Compose y Supabase Client (`auth-kt`, `postgrest-kt`). Creadas pantallas `ChildAuthScreen` y `ChildLinkScreen` (para el flujo de vinculación RPC).
+- **Panel Web (Adulto)**: Creadas páginas Next.js App Router para el Login (email/password provisional) y el Dashboard administrativo del padre. Se incluyen Server Actions para iniciar la petición de vinculación temporal (creando el código de 6 dígitos que expira en 1h).
+
+*Pendiente/Configurable*: Integración real con Google Sign-In para adultos y el sistema de PIN seguro para niños están listos en arquitectura pero requieren despliegue real en Supabase Dashboard.
+
+### Verificación y Auditoría Fase 2 (Estado: En Progreso)
+
+Según la arquitectura macro validada, se completó la programación de los clientes y el despliegue del entorno base:
+
+- Implementado: ✅
+- Revisado estáticamente: ✅ (Se confirmó que los clientes Android y Next.js no emiten \`service_role\`, usan Supabase RLS y delegan cálculos de la economía/inventario al PostgreSQL RPC).
+- Compilación: ✅ (Tanto Gradle Compose como Next.js App Router compilan limpio sin fallas de memoria o errores estructurales).
+- Tests ejecutados: \`ChildAuthViewModelTest\` en Android (validación de estados sin credenciales).
+- Tests pendientes de entorno Supabase real (Staging): Login E2E, Persistencia de sesión, Generación y caducidad de códigos de \`link_requests\` de forma síncrona en BD, y Verificación final de la inmutabilidad de \`player_balances\`.
