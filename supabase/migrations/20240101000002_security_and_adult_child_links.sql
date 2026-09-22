@@ -13,8 +13,23 @@ CREATE TYPE mission_state AS ENUM ('locked', 'active', 'pending_approval', 'comp
 
 -- Alter existing adult_child_links from 0001 to use the new ENUM and strictly enforce active state.
 -- Since 0001 defined status as TEXT, we will alter it.
+-- We MUST drop the policy from 0001 that relies on this column as TEXT before altering.
+DROP POLICY IF EXISTS "Adults can view linked children" ON public.children;
+
 ALTER TABLE public.adult_child_links DROP CONSTRAINT adult_child_links_status_check;
 ALTER TABLE public.adult_child_links ALTER COLUMN status TYPE link_status USING status::link_status;
+
+-- Recreate the policy with the new ENUM value ('active' instead of 'approved')
+CREATE POLICY "Adults can view linked children"
+ON public.children FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM public.adult_child_links
+    WHERE adult_id = auth.uid()
+      AND child_id = children.id
+      AND status = 'active'
+  )
+);
 
 -- 2. Create link_requests for the strict invitation flow
 CREATE TABLE IF NOT EXISTS public.link_requests (
