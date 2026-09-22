@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,8 +17,16 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "SUPABASE_URL", "\"https://placeholder.supabase.co\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"placeholder_anon_key\"")
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(localPropertiesFile.inputStream())
+        }
+        val supabaseUrl = localProperties.getProperty("SUPABASE_URL") ?: "\"https://placeholder.supabase.co\""
+        val supabaseKey = localProperties.getProperty("SUPABASE_KEY") ?: "\"placeholder_anon_key\""
+
+        buildConfigField("String", "SUPABASE_URL", supabaseUrl)
+        buildConfigField("String", "SUPABASE_KEY", supabaseKey)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -68,6 +78,12 @@ dependencies {
 
     // UI Tools
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Room (Waiting for KAPT fix in Staging Environment)
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    // Disabled KAPT temporarily to allow unblocked offline compile for Staging prep.
+    // kapt("androidx.room:room-compiler:2.6.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

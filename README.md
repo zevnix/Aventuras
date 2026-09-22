@@ -61,3 +61,29 @@ Se ha completado el diseño arquitectónico de la Fase 3, donde Android funciona
 - Compilación: PENDING (Debido a incidencias HTTP 429 con Maven Central al descargar KSP/Kapt para Room).
 - Tests ejecutados: \`HomeViewModelTest\` validando que el % de progreso respeta el Nivel otorgado por el backend y los saltos de XP.
 - Tests PENDING de entorno Supabase / Compilación limpia: Room Flow Data Emission, Evolución por Asset URL y Sync Network Error Handling.
+
+### Cierre Provisional: Fase 3 (Motor del Juego)
+El motor de juego principal se ha completado a nivel de arquitectura y código local en Android.
+
+#### Estado de Cierre:
+*   **Implementado:** ✅ UI (Compose), Lógica visual de progreso (ViewModel), Capa de red (Repository) y configuración SQL de BBDD (`0009`).
+*   **Revisado estáticamente:** ✅ Confirmado que Android no puede mutar datos de la economía, operando exclusivamente como un visor pasivo sincronizado por Supabase.
+*   **Tests ejecutados:** ✅ Tests del ViewModel determinando correctamente el porcentaje de progreso de acuerdo a límites estrictos remotos.
+*   **Bloqueado por infraestructura:** 🔴 Compilación del procesador de anotaciones (KSP/Kapt) de **Room** debido a límites de velocidad (`HTTP 429`) en Maven Central desde el sandbox. El DAO permanece como una interfaz limpia lista para habilitarse.
+*   **Pendiente de Supabase staging/E2E:** 🟡 Comprobación End-to-End del flujo de `Repository.syncProfileData()` hidratando el ViewModel desde un backend real.
+
+
+### Validación Final (Preparación para Staging)
+
+A continuación, se detalla el estado actual de las características y pruebas antes de conectarlas a un entorno de **Supabase Staging**:
+
+| Componente | Implementado | Compilado | Test Local | Test E2E (Staging) | Estado Final |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **BBDD (Migraciones 1 al 9)** | ✅ | ✅ | N/A | ⏳ Pendiente | Listo para Staging |
+| **Android: KSP/Room** | ✅ | 🔴 Bloqueado | ✅ (Mocks) | ⏳ Pendiente | 🔴 Bloqueado (Maven 429) |
+| **Android: Config. de Entorno** | ✅ | ✅ | N/A | ⏳ Pendiente | Listo para Staging |
+| **Next.js Admin** | ✅ | ✅ | N/A | ⏳ Pendiente | Listo para Staging |
+| **Identidad (Flujo de Vínculo)** | ✅ | ✅ | ✅ | ⏳ Pendiente | Listo para Staging |
+| **Home (Progresión Visual)** | ✅ | ✅ | ✅ | ⏳ Pendiente | Listo para Staging |
+
+*Consulta `SETUP_STAGING.md` para las instrucciones de inyección de variables.*
