@@ -51,3 +51,13 @@ Según la arquitectura macro validada, se completó la programación de los clie
 - Compilación: ✅ (Tanto Gradle Compose como Next.js App Router compilan limpio sin fallas de memoria o errores estructurales).
 - Tests ejecutados: \`ChildAuthViewModelTest\` en Android (validación de estados sin credenciales).
 - Tests pendientes de entorno Supabase real (Staging): Login E2E, Persistencia de sesión, Generación y caducidad de códigos de \`link_requests\` de forma síncrona en BD, y Verificación final de la inmutabilidad de \`player_balances\`.
+
+### Verificación y Auditoría Fase 3 (Motor del Juego)
+
+Se ha completado el diseño arquitectónico de la Fase 3, donde Android funciona estrictamente como un visor del Single Source of Truth local alimentado por la autoridad remota.
+
+- Implementado: ✅ (Room Entities, PlayerDao, PlayerRepository, HomeViewModel y HomeScreen).
+- Revisado estáticamente: ✅
+- Compilación: PENDING (Debido a incidencias HTTP 429 con Maven Central al descargar KSP/Kapt para Room).
+- Tests ejecutados: \`HomeViewModelTest\` validando que el % de progreso respeta el Nivel otorgado por el backend y los saltos de XP.
+- Tests PENDING de entorno Supabase / Compilación limpia: Room Flow Data Emission, Evolución por Asset URL y Sync Network Error Handling.

@@ -1,0 +1,129 @@
+package com.projectgame.app.domain.repository
+
+import com.projectgame.app.data.local.dao.PlayerDao
+import com.projectgame.app.data.local.entity.GameConfigEntity
+import com.projectgame.app.data.local.entity.PetEvolutionEntity
+import com.projectgame.app.data.local.entity.PlayerProfileEntity
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+
+// --- DTOs from Supabase ---
+@Serializable
+data class ProfileDto(
+    val child_id: String,
+    val level: Int,
+    val current_pet_id: String? = null,
+    val current_evolution_id: String? = null
+)
+
+@Serializable
+data class ChildAuthDto(
+    val id: String,
+    val username: String,
+    val display_name: String
+)
+
+@Serializable
+data class BalanceDto(
+    val child_id: String,
+    val xp_balance: Int = 0,
+    val coins_balance: Int = 0,
+    val gems_balance: Int = 0
+)
+
+@Serializable
+data class GameConfigDto(
+    val key: String,
+    val value: kotlinx.serialization.json.JsonElement
+)
+
+@Serializable
+data class PetEvolutionDto(
+    val id: String,
+    val pet_id: String,
+    val stage_name: String,
+    val level_required: Int,
+    val asset_url: String
+)
+
+class PlayerRepository(
+    private val dao: PlayerDao,
+    private val supabase: SupabaseClient
+) {
+    // --- SSOT Readers (Flowing directly from Room) ---
+    fun getProfileFlow(childId: String): Flow<PlayerProfileEntity?> = dao.getProfileFlow(childId)
+    fun getEvolutionFlow(evolutionId: String): Flow<PetEvolutionEntity?> = dao.getEvolutionFlow(evolutionId)
+    fun getGameConfigFlow(configKey: String): Flow<GameConfigEntity?> = dao.getGameConfigFlow(configKey)
+
+    // --- Sync Strategy: Server-Authoritative Override ---
+    suspend fun syncProfileData(childId: String) = withContext(Dispatchers.IO) {
+        // 1. Fetch Auth & Profile details
+        val childResponse = supabase.postgrest["children"].select(columns = Columns.list("id, username, display_name")) {
+            filter { eq("id", childId) }
+        }.decodeSingle<ChildAuthDto>()
+
+        val profileResponse = supabase.postgrest["player_profiles"].select(columns = Columns.list("child_id, level, current_pet_id, current_evolution_id")) {
+            filter { eq("child_id", childId) }
+        }.decodeSingle<ProfileDto>()
+
+        // 2. Fetch Immutable Balance Projection
+        val balanceResponse = supabase.postgrest["player_balances"].select() {
+            filter { eq("child_id", childId) }
+        }.decodeSingleOrNull<BalanceDto>() ?: BalanceDto(child_id = childId) // Fallback to 0 if no tx yet
+
+        // 3. Persist to Room (SSOT)
+        val entity = PlayerProfileEntity(
+            childId = childId,
+            username = childResponse.username,
+            displayName = childResponse.display_name,
+            level = profileResponse.level,
+            currentPetId = profileResponse.current_pet_id,
+            currentEvolutionId = profileResponse.current_evolution_id,
+            xpBalance = balanceResponse.xp_balance,
+            coinsBalance = balanceResponse.coins_balance,
+            gemsBalance = balanceResponse.gems_balance,
+            lastSyncTime = System.currentTimeMillis()
+        )
+        dao.insertProfile(entity)
+
+        // 4. Fetch the active evolution asset if any
+        profileResponse.current_evolution_id?.let { evoId ->
+            val evoResponse = supabase.postgrest["pet_evolutions"].select() {
+                filter { eq("id", evoId) }
+            }.decodeSingleOrNull<PetEvolutionDto>()
+
+            evoResponse?.let {
+                val evoEntity = PetEvolutionEntity(
+                    id = it.id,
+                    petId = it.pet_id,
+                    stageName = it.stage_name,
+                    levelRequired = it.level_required,
+                    assetUrl = it.asset_url
+                )
+                dao.insertEvolutions(listOf(evoEntity))
+            }
+        }
+    }
+
+    suspend fun syncGameConfigs() = withContext(Dispatchers.IO) {
+        // Fetch level thresholds
+        val configResponse = supabase.postgrest["game_configs"].select() {
+            filter { eq("key", "level_thresholds") }
+        }.decodeSingleOrNull<GameConfigDto>()
+
+        configResponse?.let {
+            val configEntity = GameConfigEntity(
+                key = it.key,
+                valueJson = it.value.toString()
+            )
+            dao.insertGameConfig(configEntity)
+        }
+    }
+}
