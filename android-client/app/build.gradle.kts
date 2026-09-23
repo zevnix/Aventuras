@@ -76,6 +76,9 @@ dependencies {
     implementation("io.ktor:ktor-client-android:2.3.11")
     implementation("com.russhwolf:multiplatform-settings-no-arg:1.1.1")
 
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.5")
+
     // UI Tools
     implementation("io.coil-kt:coil-compose:2.5.0")
 

@@ -33,8 +33,13 @@ import com.projectgame.app.ui.viewmodel.AuthState
 import com.projectgame.app.ui.viewmodel.LinkState
 
 // Mocking Home ViewModel for the Play-First flow test
+import androidx.compose.ui.platform.LocalContext
 import com.projectgame.app.ui.home.HomeScreen
 import com.projectgame.app.ui.home.HomeViewModel
+import com.projectgame.app.ui.home.HomeViewModelFactory
+import com.projectgame.app.data.local.ProjectGameDatabase
+import com.projectgame.app.data.supabase.SupabaseModule
+import com.projectgame.app.domain.repository.PlayerRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +50,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    val context = LocalContext.current
                     val authViewModel: ChildAuthViewModel = viewModel()
                     val authState by authViewModel.uiState.collectAsState()
 
@@ -72,8 +78,13 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         is AuthState.Success -> {
-                            // 100% Play-First: Bypass login screens completely and load the game
-                            val homeViewModel: HomeViewModel = viewModel()
+                            // Instantiate dependencies explicitly since we lack a DI framework
+                            val db = ProjectGameDatabase.getDatabase(context)
+                            val repository = PlayerRepository(db.playerDao(), SupabaseModule.client)
+
+                            val homeViewModel: HomeViewModel = viewModel(
+                                factory = HomeViewModelFactory(repository, state.uid)
+                            )
                             HomeScreen(viewModel = homeViewModel)
                         }
                         is AuthState.Error -> {

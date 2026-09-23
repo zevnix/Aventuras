@@ -23,8 +23,8 @@ data class HomeUiState(
 )
 
 class HomeViewModel(
-    private val repository: PlayerRepository? = null,
-    private val childId: String = "" // Injected based on active Auth session
+    private val repository: PlayerRepository,
+    private val childId: String
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -33,7 +33,6 @@ class HomeViewModel(
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
     init {
-        if (repository != null) {
         // 1. Instantly subscribe to the Local Source of Truth
         viewModelScope.launch {
             combine(
@@ -67,11 +66,9 @@ class HomeViewModel(
 
         // 2. Trigger async refresh (Network Sync)
         syncData()
-        }
     }
 
     fun syncData() {
-        if (repository == null) return
         _uiState.update { it.copy(isLoading = true, errorMessage = null, isOffline = false) }
         viewModelScope.launch {
             try {

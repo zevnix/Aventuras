@@ -94,3 +94,9 @@ El inicio de sesión interactivo y friccional ha sido desactivado temporalmente 
 - **Persistencia:** Configurada utilizando `androidx.datastore` y la extensión de persistencia de `supabase-kt`. Nota técnica: DataStore solo ofrece persistencia local base. Una capa de cifrado sobre las llaves de sesión debe ser auditada antes de alcanzar un entorno de producción (E.g. EncryptedSharedPreferences u observadores custom de DataStore).
 - **Flujo Anónimo:** Al inicializar la app, se invoca transparentemente `signInAnonymously()`.
 - Todo el esquema Backend (Triggers, RLS y SQL) se mantiene 100% nativamente compatible con este flujo; no sufrió alteraciones.
+
+### Fase 2: Experiencia Visual "Play-First"
+- **Navegación Intuitiva:** Implementado `NavHost` con las 4 rutas base (`World`, `Missions`, `House`, `Profile`) usando iconos fluidos. La UI de login es eliminada o referenciada solo como sub-acción dentro del Perfil, en favor del arranque nativo con Sign-In Anónimo en segundo plano (Implementado en la Fase anterior).
+- **Progresión Independiente:** La UI recalcula las barras mediante el `HomeViewModel` respetando el `player_profiles.level` y derivando imágenes de estado vía `currentEvolutionId` sin acoplamiento duro.
+- **Temática de Color:** `PrimaryMagic` y `SecondaryAdventure` instaladas para alejar el app del look de Material básico.
+- **Limitaciones (Mockups/Assets):** Como dictan los requerimientos del Vertical Slice, las recompensas visuales están provisionalmente maquetadas y las misiones se renderizan a través de DTOs simulados, a la espera de la Fase Misiones Final.
