@@ -1,6 +1,10 @@
 package com.projectgame.app.data.local.entity
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "game_configs")
 data class GameConfigEntity(
-    val key: String,
+    @PrimaryKey val key: String,
     val valueJson: String
 )
