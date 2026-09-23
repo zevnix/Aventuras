@@ -74,7 +74,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.3.1")
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.3.1")
     implementation("io.ktor:ktor-client-android:2.3.11")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.russhwolf:multiplatform-settings-no-arg:1.1.1")
 
     // UI Tools
     implementation("io.coil-kt:coil-compose:2.5.0")

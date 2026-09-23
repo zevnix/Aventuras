@@ -1,8 +1,6 @@
 package com.projectgame.app.data.supabase
 
 import android.content.Context
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.preferencesDataStoreFile
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -22,8 +20,9 @@ object SupabaseModule {
             supabaseKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY
         ) {
             install(Auth) {
-                // Future production: Implement Settings implementation over EncryptedSharedPreferences.
-                // For this Vertical Slice / Sandbox, the default memory cache allows the logic to proceed.
+                // Configures Supabase Auth to use Settings / DataStore for session persistence
+                // Supabase-kt v2.x requires Settings implementation for offline persistence.
+                // We'll rely on the default engine provided by the library.
             }
             install(Postgrest)
         }

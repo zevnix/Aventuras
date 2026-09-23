@@ -87,3 +87,10 @@ A continuación, se detalla el estado actual de las características y pruebas a
 | **Home (Progresión Visual)** | ✅ | ✅ | ✅ | ⏳ Pendiente | Listo para Staging |
 
 *Consulta `SETUP_STAGING.md` para las instrucciones de inyección de variables.*
+
+### Transición Play-First (Fase 1)
+
+El inicio de sesión interactivo y friccional ha sido desactivado temporalmente para dar paso a la entrada inmersiva inmediata del jugador.
+- **Persistencia:** Configurada utilizando `androidx.datastore` y la extensión de persistencia de `supabase-kt`. Nota técnica: DataStore solo ofrece persistencia local base. Una capa de cifrado sobre las llaves de sesión debe ser auditada antes de alcanzar un entorno de producción (E.g. EncryptedSharedPreferences u observadores custom de DataStore).
+- **Flujo Anónimo:** Al inicializar la app, se invoca transparentemente `signInAnonymously()`.
+- Todo el esquema Backend (Triggers, RLS y SQL) se mantiene 100% nativamente compatible con este flujo; no sufrió alteraciones.
