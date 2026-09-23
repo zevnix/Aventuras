@@ -10,7 +10,7 @@ VALUES
   'Suma de Manzanas',
   'Resuelve este pequeño puzzle matemático.',
   'mind',
-  'digital_quiz',
+  'quiz', -- Changed from 'digital_quiz' to 'quiz' to match existing Enum in 0002
   30,
   10,
   true,
