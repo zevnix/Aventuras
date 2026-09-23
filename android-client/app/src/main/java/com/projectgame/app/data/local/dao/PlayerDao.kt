@@ -20,8 +20,14 @@ interface PlayerDao {
     @Query("SELECT * FROM game_configs WHERE `key` = :configKey LIMIT 1")
     fun getGameConfigFlow(configKey: String): Flow<GameConfigEntity?>
 
+    @Query("SELECT * FROM missions_config")
+    fun getAllMissionsFlow(): Flow<List<com.projectgame.app.data.local.entity.MissionConfigEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProfile(profile: PlayerProfileEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMissionsConfig(missions: List<com.projectgame.app.data.local.entity.MissionConfigEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvolutions(evolutions: List<PetEvolutionEntity>)

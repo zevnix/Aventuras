@@ -40,6 +40,8 @@ import com.projectgame.app.ui.home.HomeViewModelFactory
 import com.projectgame.app.data.local.ProjectGameDatabase
 import com.projectgame.app.data.supabase.SupabaseModule
 import com.projectgame.app.domain.repository.PlayerRepository
+import com.projectgame.app.ui.missions.MissionsViewModel
+import com.projectgame.app.ui.missions.MissionsViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,7 +87,14 @@ class MainActivity : ComponentActivity() {
                             val homeViewModel: HomeViewModel = viewModel(
                                 factory = HomeViewModelFactory(repository, state.uid)
                             )
-                            HomeScreen(viewModel = homeViewModel)
+
+                            val missionsViewModel: MissionsViewModel = viewModel(
+                                factory = MissionsViewModelFactory(repository, state.uid)
+                            )
+                            HomeScreen(
+                                viewModel = homeViewModel,
+                                missionsViewModel = missionsViewModel
+                            )
                         }
                         is AuthState.Error -> {
                             Column(

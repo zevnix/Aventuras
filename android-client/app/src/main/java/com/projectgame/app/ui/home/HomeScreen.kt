@@ -14,9 +14,14 @@ import com.projectgame.app.ui.navigation.AventiBottomNav
 import com.projectgame.app.ui.navigation.Screen
 import com.projectgame.app.ui.profile.ProfileScreen
 import com.projectgame.app.ui.world.WorldScreen
+import com.projectgame.app.ui.missions.PlayMissionScreen
+import com.projectgame.app.ui.missions.MissionsViewModel
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    missionsViewModel: MissionsViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
 
@@ -41,7 +46,21 @@ fun HomeScreen(viewModel: HomeViewModel) {
                     )
                 }
                 composable(Screen.Missions.route) {
-                    MissionsScreen()
+                    MissionsScreen(
+                        viewModel = missionsViewModel,
+                        onMissionSelected = { missionId ->
+                            navController.navigate("play_mission/$missionId")
+                        }
+                    )
+                }
+                composable("play_mission/{missionId}") { backStackEntry ->
+                    val missionId = backStackEntry.arguments?.getString("missionId") ?: return@composable
+                    PlayMissionScreen(
+                        missionId = missionId,
+                        viewModel = missionsViewModel,
+                        onBack = { navController.popBackStack() },
+                        onMissionCompleted = { navController.popBackStack() }
+                    )
                 }
                 composable(Screen.House.route) {
                     HouseScreen()

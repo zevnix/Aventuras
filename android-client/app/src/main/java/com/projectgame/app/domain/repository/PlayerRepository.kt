@@ -7,6 +7,7 @@ import com.projectgame.app.data.local.entity.PlayerProfileEntity
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,6 +54,26 @@ data class PetEvolutionDto(
     val asset_url: String
 )
 
+@Serializable
+data class MissionConfigDto(
+    val id: String,
+    val title: String,
+    val description: String,
+    val category: String,
+    val mission_type: String,
+    val reward_xp: Int,
+    val reward_coins: Int,
+    val content: kotlinx.serialization.json.JsonElement? = null
+)
+
+@Serializable
+data class MissionInstanceDto(
+    val id: String,
+    val child_id: String,
+    val mission_config_id: String,
+    val status: String
+)
+
 class PlayerRepository(
     private val dao: PlayerDao,
     private val supabase: SupabaseClient
@@ -61,6 +82,7 @@ class PlayerRepository(
     fun getProfileFlow(childId: String): Flow<PlayerProfileEntity?> = dao.getProfileFlow(childId)
     fun getEvolutionFlow(evolutionId: String): Flow<PetEvolutionEntity?> = dao.getEvolutionFlow(evolutionId)
     fun getGameConfigFlow(configKey: String): Flow<GameConfigEntity?> = dao.getGameConfigFlow(configKey)
+    fun getAllMissionsFlow(): Flow<List<com.projectgame.app.data.local.entity.MissionConfigEntity>> = dao.getAllMissionsFlow()
 
     // --- Sync Strategy: Server-Authoritative Override ---
     suspend fun syncProfileData(childId: String) = withContext(Dispatchers.IO) {
@@ -112,6 +134,28 @@ class PlayerRepository(
         }
     }
 
+    suspend fun completeMission(childId: String, missionId: String) = withContext(Dispatchers.IO) {
+        // 1. We must first insert a mission_instance to satisfy the RPC requirements
+        val createInstanceResponse = supabase.postgrest["mission_instances"].insert(
+            mapOf(
+                "child_id" to childId,
+                "mission_config_id" to missionId,
+                "status" to "active"
+            )
+        ) {
+            select()
+        }.decodeSingle<MissionInstanceDto>()
+
+        // 2. Call the server-authoritative completion RPC
+        supabase.postgrest.rpc(
+            "complete_digital_mission",
+            mapOf("p_instance_id" to createInstanceResponse.id)
+        )
+
+        // 3. Resync profile to pull down the newly awarded XP/Coins
+        syncProfileData(childId)
+    }
+
     suspend fun syncGameConfigs() = withContext(Dispatchers.IO) {
         // Fetch level thresholds
         val configResponse = supabase.postgrest["game_configs"].select() {
@@ -125,5 +169,25 @@ class PlayerRepository(
             )
             dao.insertGameConfig(configEntity)
         }
+
+        // Fetch published missions
+        val missionsResponse = supabase.postgrest["missions_config"].select() {
+            filter { eq("status", "published") }
+        }.decodeList<MissionConfigDto>()
+
+        val missionEntities = missionsResponse.map {
+            com.projectgame.app.data.local.entity.MissionConfigEntity(
+                id = it.id,
+                title = it.title,
+                description = it.description,
+                category = it.category,
+                missionType = it.mission_type,
+                rewardXp = it.reward_xp,
+                rewardCoins = it.reward_coins,
+                contentJson = it.content?.toString() ?: "{}"
+            )
+        }
+
+        dao.insertMissionsConfig(missionEntities)
     }
 }

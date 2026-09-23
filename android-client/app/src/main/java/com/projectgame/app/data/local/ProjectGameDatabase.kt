@@ -8,14 +8,16 @@ import com.projectgame.app.data.local.dao.PlayerDao
 import com.projectgame.app.data.local.entity.GameConfigEntity
 import com.projectgame.app.data.local.entity.PetEvolutionEntity
 import com.projectgame.app.data.local.entity.PlayerProfileEntity
+import com.projectgame.app.data.local.entity.MissionConfigEntity
 
 @Database(
     entities = [
         PlayerProfileEntity::class,
         PetEvolutionEntity::class,
-        GameConfigEntity::class
+        GameConfigEntity::class,
+        MissionConfigEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class ProjectGameDatabase : RoomDatabase() {
