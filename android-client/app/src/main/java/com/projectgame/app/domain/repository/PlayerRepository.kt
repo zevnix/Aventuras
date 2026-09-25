@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
+import android.util.Log
 
 // --- DTOs from Supabase ---
 @Serializable
@@ -86,74 +87,91 @@ class PlayerRepository(
 
     // --- Sync Strategy: Server-Authoritative Override ---
     suspend fun syncProfileData(childId: String) = withContext(Dispatchers.IO) {
-        // 1. Fetch Auth & Profile details
-        val childResponse = supabase.postgrest["children"].select(columns = Columns.list("id, username, display_name")) {
-            filter { eq("id", childId) }
-        }.decodeSingle<ChildAuthDto>()
+        try {
+            // 1. Fetch Auth & Profile details
+            val childResponse = supabase.postgrest["children"].select(columns = Columns.list("id, username, display_name")) {
+                filter { eq("id", childId) }
+            }.decodeSingle<ChildAuthDto>()
 
-        val profileResponse = supabase.postgrest["player_profiles"].select(columns = Columns.list("child_id, level, current_pet_id, current_evolution_id")) {
-            filter { eq("child_id", childId) }
-        }.decodeSingle<ProfileDto>()
+            val profileResponse = supabase.postgrest["player_profiles"].select(columns = Columns.list("child_id, level, current_pet_id, current_evolution_id")) {
+                filter { eq("child_id", childId) }
+            }.decodeSingle<ProfileDto>()
 
-        // 2. Fetch Immutable Balance Projection
-        val balanceResponse = supabase.postgrest["player_balances"].select() {
-            filter { eq("child_id", childId) }
-        }.decodeSingleOrNull<BalanceDto>() ?: BalanceDto(child_id = childId) // Fallback to 0 if no tx yet
+            // 2. Fetch Immutable Balance Projection
+            val balanceResponse = supabase.postgrest["player_balances"].select() {
+                filter { eq("child_id", childId) }
+            }.decodeSingleOrNull<BalanceDto>() ?: BalanceDto(child_id = childId) // Fallback to 0 if no tx yet
 
-        // 3. Persist to Room (SSOT)
-        val entity = PlayerProfileEntity(
-            childId = childId,
-            username = childResponse.username,
-            displayName = childResponse.display_name,
-            level = profileResponse.level,
-            currentPetId = profileResponse.current_pet_id,
-            currentEvolutionId = profileResponse.current_evolution_id,
-            xpBalance = balanceResponse.xp_balance,
-            coinsBalance = balanceResponse.coins_balance,
-            gemsBalance = balanceResponse.gems_balance,
-            lastSyncTime = System.currentTimeMillis()
-        )
-        dao.insertProfile(entity)
+            Log.d("PlayerRepository", "Sync successful! Balances: XP=${balanceResponse.xp_balance}, Coins=${balanceResponse.coins_balance}")
 
-        // 4. Fetch the active evolution asset if any
-        profileResponse.current_evolution_id?.let { evoId ->
-            val evoResponse = supabase.postgrest["pet_evolutions"].select() {
-                filter { eq("id", evoId) }
-            }.decodeSingleOrNull<PetEvolutionDto>()
+            // 3. Persist to Room (SSOT)
+            val entity = PlayerProfileEntity(
+                childId = childId,
+                username = childResponse.username,
+                displayName = childResponse.display_name,
+                level = profileResponse.level,
+                currentPetId = profileResponse.current_pet_id,
+                currentEvolutionId = profileResponse.current_evolution_id,
+                xpBalance = balanceResponse.xp_balance,
+                coinsBalance = balanceResponse.coins_balance,
+                gemsBalance = balanceResponse.gems_balance,
+                lastSyncTime = System.currentTimeMillis()
+            )
+            dao.insertProfile(entity)
 
-            evoResponse?.let {
-                val evoEntity = PetEvolutionEntity(
-                    id = it.id,
-                    petId = it.pet_id,
-                    stageName = it.stage_name,
-                    levelRequired = it.level_required,
-                    assetUrl = it.asset_url
-                )
-                dao.insertEvolutions(listOf(evoEntity))
+            // 4. Fetch the active evolution asset if any
+            profileResponse.current_evolution_id?.let { evoId ->
+                val evoResponse = supabase.postgrest["pet_evolutions"].select() {
+                    filter { eq("id", evoId) }
+                }.decodeSingleOrNull<PetEvolutionDto>()
+
+                evoResponse?.let {
+                    val evoEntity = PetEvolutionEntity(
+                        id = it.id,
+                        petId = it.pet_id,
+                        stageName = it.stage_name,
+                        levelRequired = it.level_required,
+                        assetUrl = it.asset_url
+                    )
+                    dao.insertEvolutions(listOf(evoEntity))
+                }
             }
+        } catch(e: Exception) {
+            Log.e("PlayerRepository", "Failed to sync profile data: ${e.message}", e)
+            throw e
         }
     }
 
     suspend fun completeMission(childId: String, missionId: String) = withContext(Dispatchers.IO) {
-        // 1. We must first insert a mission_instance to satisfy the RPC requirements
-        val createInstanceResponse = supabase.postgrest["mission_instances"].insert(
-            mapOf(
-                "child_id" to childId,
-                "mission_config_id" to missionId,
-                "status" to "active"
+        try {
+            Log.d("PlayerRepository", "Attempting to complete mission $missionId for child $childId")
+            // 1. We must first insert a mission_instance to satisfy the RPC requirements
+            val createInstanceResponse = supabase.postgrest["mission_instances"].insert(
+                mapOf(
+                    "child_id" to childId,
+                    "mission_config_id" to missionId,
+                    "status" to "active"
+                )
+            ) {
+                select()
+            }.decodeSingle<MissionInstanceDto>()
+
+            Log.d("PlayerRepository", "Instance created successfully: ${createInstanceResponse.id}")
+
+            // 2. Call the server-authoritative completion RPC
+            supabase.postgrest.rpc(
+                "complete_digital_mission",
+                mapOf("p_instance_id" to createInstanceResponse.id)
             )
-        ) {
-            select()
-        }.decodeSingle<MissionInstanceDto>()
 
-        // 2. Call the server-authoritative completion RPC
-        supabase.postgrest.rpc(
-            "complete_digital_mission",
-            mapOf("p_instance_id" to createInstanceResponse.id)
-        )
+            Log.d("PlayerRepository", "RPC executed successfully. Resyncing profile...")
 
-        // 3. Resync profile to pull down the newly awarded XP/Coins
-        syncProfileData(childId)
+            // 3. Resync profile to pull down the newly awarded XP/Coins
+            syncProfileData(childId)
+        } catch(e: Exception) {
+            Log.e("PlayerRepository", "Failed to complete mission: ${e.message}", e)
+            throw e
+        }
     }
 
     suspend fun syncGameConfigs() = withContext(Dispatchers.IO) {
