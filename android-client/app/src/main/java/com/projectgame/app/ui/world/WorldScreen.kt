@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,7 +16,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.projectgame.app.ui.theme.ForestGreen
 import com.projectgame.app.ui.theme.SkyBlue
 
@@ -64,12 +67,28 @@ fun WorldScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (currentAssetUrl != null) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = currentAssetUrl,
                         contentDescription = "Mascota",
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
-                    )
+                    ) {
+                        val state = painter.state
+                        if (state is AsyncImagePainter.State.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(50.dp).align(Alignment.Center))
+                        } else if (state is AsyncImagePainter.State.Error) {
+                            Box(
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .background(Color.White.copy(alpha = 0.5f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Mascota (Placeholder)", color = Color.DarkGray)
+                            }
+                        } else {
+                            SubcomposeAsyncImageContent()
+                        }
+                    }
                 } else {
                     // Fallback visual if no asset url is defined yet
                     Box(
