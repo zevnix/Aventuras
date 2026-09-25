@@ -1,6 +1,7 @@
 package com.projectgame.app.ui.missions
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,80 +10,171 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.projectgame.app.data.local.entity.MissionConfigEntity
-import com.projectgame.app.ui.theme.PrimaryMagic
+import com.projectgame.app.ui.components.squishyClickable
 
 @Composable
 fun MissionsScreen(
     viewModel: MissionsViewModel,
-    onMissionSelected: (String) -> Unit
+    onMissionSelected: (String) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
+    val boardColor = try { Color(android.graphics.Color.parseColor(uiState.themeConfig.board_color)) } catch(e:Exception) { Color(0xFF5D4037) }
+    val boardAccent = try { Color(android.graphics.Color.parseColor(uiState.themeConfig.board_accent)) } catch(e:Exception) { Color(0xFF8D6E63) }
+    val buttonPrimary = try { Color(android.graphics.Color.parseColor(uiState.themeConfig.button_primary)) } catch(e:Exception) { Color(0xFF43A047) }
+    val buttonAccent = try { Color(android.graphics.Color.parseColor(uiState.themeConfig.button_primary_accent)) } catch(e:Exception) { Color(0xFFA5D6A7) }
+
+    // Wood Board Background
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDFBF7))
+            .background(boardColor) // Dark Wood
             .padding(16.dp)
     ) {
-        Text("Tus Aventuras de Hoy", style = MaterialTheme.typography.headlineMedium, color = PrimaryMagic)
-        Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Board Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .background(boardAccent, RoundedCornerShape(12.dp))
+                    .border(4.dp, Color(0xFF4E342E), RoundedCornerShape(12.dp))
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Tablero de Aventuras",
+                    color = Color(0xFFFFECB3), // Golden Paper
+                    fontWeight = FontWeight.Black,
+                    fontSize = 24.sp
+                )
+            }
 
-        if (uiState.isLoading && uiState.missions.isEmpty()) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(uiState.missions.size) { index ->
-                    MissionCard(uiState.missions[index], onMissionSelected)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (uiState.isLoading && uiState.missions.isEmpty()) {
+                CircularProgressIndicator(color = Color(0xFFFFB703))
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(uiState.missions.size) { index ->
+                        MissionCard(uiState.missions[index], buttonPrimary, buttonAccent, onMissionSelected)
+                    }
                 }
             }
+        }
+
+        // Return button at the bottom
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+                .squishyClickable { onBack() }
+                .shadow(8.dp, RoundedCornerShape(24.dp))
+                .background(Color(0xFFE53935), RoundedCornerShape(24.dp))
+                .border(2.dp, Color.White, RoundedCornerShape(24.dp))
+                .padding(horizontal = 32.dp, vertical = 12.dp)
+        ) {
+            Text("Volver al Mundo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
     }
 }
 
 @Composable
-fun MissionCard(mission: MissionConfigEntity, onMissionSelected: (String) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+fun MissionCard(
+    mission: MissionConfigEntity,
+    buttonPrimary: Color,
+    buttonAccent: Color,
+    onMissionSelected: (String) -> Unit
+) {
+    // Looks like a piece of paper pinned to the board
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(0.dp)) // Flat paper shadow
+            .background(Color(0xFFFFF8E1)) // Old paper color
+            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        // Mock Pin
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-8).dp)
+                .size(12.dp)
+                .background(Color.Red, RoundedCornerShape(6.dp))
+        )
+
+        Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Text(mission.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    mission.title,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp,
+                    color = Color(0xFF3E2723),
+                    modifier = Modifier.weight(1f)
+                )
+
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryMagic.copy(alpha = 0.1f))
+                        .background(Color(0xFFFFCC80), RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text(getCategoryLabel(mission.category), color = PrimaryMagic, style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        getCategoryLabel(mission.category),
+                        color = Color(0xFFE65100),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(mission.description, color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+
             Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                mission.description,
+                color = Color(0xFF5D4037),
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row {
-                    Text("+${mission.rewardXp} XP", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("+${mission.rewardCoins} 🪙", color = Color(0xFFFFB703), fontWeight = FontWeight.Bold)
+                    Text("+${mission.rewardXp} XP", color = Color(0xFF2E7D32), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("+${mission.rewardCoins} 🪙", color = Color(0xFFF57F17), fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
-                Button(
-                    onClick = { onMissionSelected(mission.id) },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryMagic)
+
+                // Squishy game button
+                Box(
+                    modifier = Modifier
+                        .squishyClickable { onMissionSelected(mission.id) }
+                        .shadow(4.dp, RoundedCornerShape(12.dp))
+                        .background(buttonPrimary, RoundedCornerShape(12.dp))
+                        .border(2.dp, buttonAccent, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text("¡Empezar!")
+                    Text("¡Empezar!", color = Color.White, fontWeight = FontWeight.Black)
                 }
             }
         }
@@ -95,6 +187,6 @@ fun getCategoryLabel(category: String): String {
         "creativity" -> "Creatividad"
         "real_world" -> "Mundo Real"
         "family" -> "Familia"
-        else -> category.capitalize()
+        else -> category.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 }

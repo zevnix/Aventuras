@@ -175,18 +175,18 @@ class PlayerRepository(
     }
 
     suspend fun syncGameConfigs() = withContext(Dispatchers.IO) {
-        // Fetch level thresholds
-        val configResponse = supabase.postgrest["game_configs"].select() {
-            filter { eq("key", "level_thresholds") }
-        }.decodeSingleOrNull<GameConfigDto>()
+        // Fetch published game configs
+        val configsResponse = supabase.postgrest["game_configs"].select() {
+            filter { eq("status", "published") }
+        }.decodeList<GameConfigDto>()
 
-        configResponse?.let {
-            val configEntity = GameConfigEntity(
+        val configEntities = configsResponse.map {
+            GameConfigEntity(
                 key = it.key,
                 valueJson = it.value.toString()
             )
-            dao.insertGameConfig(configEntity)
         }
+        configEntities.forEach { dao.insertGameConfig(it) }
 
         // Fetch published missions
         val missionsResponse = supabase.postgrest["missions_config"].select() {

@@ -10,10 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.projectgame.app.ui.home.ThemeConfig
+import kotlinx.serialization.json.Json
+
 data class MissionsUiState(
     val isLoading: Boolean = true,
     val isOffline: Boolean = false,
-    val missions: List<MissionConfigEntity> = emptyList()
+    val missions: List<MissionConfigEntity> = emptyList(),
+    val themeConfig: ThemeConfig = ThemeConfig()
 )
 
 class MissionsViewModel(
@@ -24,12 +28,24 @@ class MissionsViewModel(
     val uiState: StateFlow<MissionsUiState> = _uiState.asStateFlow()
 
     init {
+        val jsonParser = Json { ignoreUnknownKeys = true }
+
         viewModelScope.launch {
-            repository.getAllMissionsFlow().collect { missionList ->
+            kotlinx.coroutines.flow.combine(
+                repository.getAllMissionsFlow(),
+                repository.getGameConfigFlow("active_theme")
+            ) { missionList, themeConfigEntity ->
+                Pair(missionList, themeConfigEntity)
+            }.collect { (missionList, themeConfigEntity) ->
+                val parsedTheme = themeConfigEntity?.valueJson?.let {
+                    try { jsonParser.decodeFromString<ThemeConfig>(it) } catch(e: Exception) { ThemeConfig() }
+                } ?: ThemeConfig()
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        missions = missionList
+                        missions = missionList,
+                        themeConfig = parsedTheme
                     )
                 }
             }

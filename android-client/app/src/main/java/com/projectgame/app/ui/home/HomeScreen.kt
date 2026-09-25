@@ -26,7 +26,7 @@ fun HomeScreen(
     val navController = rememberNavController()
 
     Scaffold(
-        bottomBar = { AventiBottomNav(navController) }
+        // bottomBar removed for immersive world experience
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -42,7 +42,11 @@ fun HomeScreen(
                 composable(Screen.World.route) {
                     WorldScreen(
                         currentAssetUrl = uiState.currentAssetUrl,
-                        isLoading = uiState.isLoading
+                        isLoading = uiState.isLoading,
+                        themeConfig = uiState.themeConfig,
+                        onNavigateToMissions = { navController.navigate(Screen.Missions.route) },
+                        onNavigateToHouse = { navController.navigate(Screen.House.route) },
+                        onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
                     )
                 }
                 composable(Screen.Missions.route) {
@@ -50,7 +54,8 @@ fun HomeScreen(
                         viewModel = missionsViewModel,
                         onMissionSelected = { missionId ->
                             navController.navigate("play_mission/$missionId")
-                        }
+                        },
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("play_mission/{missionId}") { backStackEntry ->

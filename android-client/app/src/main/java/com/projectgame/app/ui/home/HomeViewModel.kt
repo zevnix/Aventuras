@@ -12,6 +12,18 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class LevelThreshold(val level: Int, val xp_required: Int)
 
+@Serializable
+data class ThemeConfig(
+    val parallax_sky_top: String = "#81D4FA",
+    val parallax_sky_bottom: String = "#B3E5FC",
+    val parallax_ground_top: String = "#4CAF50",
+    val parallax_ground_bottom: String = "#1B5E20",
+    val board_color: String = "#5D4037",
+    val board_accent: String = "#8D6E63",
+    val button_primary: String = "#43A047",
+    val button_primary_accent: String = "#A5D6A7"
+)
+
 data class HomeUiState(
     val isLoading: Boolean = true,
     val isOffline: Boolean = false,
@@ -19,7 +31,8 @@ data class HomeUiState(
     val profile: PlayerProfileEntity? = null,
     val currentAssetUrl: String? = null,
     val visualProgressPercentage: Float = 0f,
-    val targetXpForNextLevel: Int = 0
+    val targetXpForNextLevel: Int = 0,
+    val themeConfig: ThemeConfig = ThemeConfig()
 )
 
 class HomeViewModel(
@@ -37,12 +50,17 @@ class HomeViewModel(
         viewModelScope.launch {
             combine(
                 repository.getProfileFlow(childId),
-                repository.getGameConfigFlow("level_thresholds")
-            ) { profile, config ->
-                Pair(profile, config)
-            }.collect { (profile, config) ->
+                repository.getGameConfigFlow("level_thresholds"),
+                repository.getGameConfigFlow("active_theme")
+            ) { profile, levelConfig, themeConfigEntity ->
+                Triple(profile, levelConfig, themeConfigEntity)
+            }.collect { (profile, levelConfig, themeConfigEntity) ->
+                val parsedTheme = themeConfigEntity?.valueJson?.let {
+                    try { jsonParser.decodeFromString<ThemeConfig>(it) } catch(e: Exception) { ThemeConfig() }
+                } ?: ThemeConfig()
+
                 if (profile != null) {
-                    val thresholds = config?.valueJson?.let { parseThresholds(it) } ?: emptyList()
+                    val thresholds = levelConfig?.valueJson?.let { parseThresholds(it) } ?: emptyList()
                     val (progress, nextXp) = calculateVisualProgress(profile.level, profile.xpBalance, thresholds)
 
                     _uiState.update {
@@ -50,7 +68,8 @@ class HomeViewModel(
                             isLoading = false,
                             profile = profile,
                             visualProgressPercentage = progress,
-                            targetXpForNextLevel = nextXp
+                            targetXpForNextLevel = nextXp,
+                            themeConfig = parsedTheme
                         )
                     }
 
